@@ -122,20 +122,27 @@ class Map:
 
         @param grid: A 2D list of Pipe objects representing the initial layout of the map.
         @return: An instance of Map with the grid loaded."""
-        width = len(grid[0]) if grid else 0
-        height = len(grid)
+        width = len(grid) 
+        height = len(grid[0])if width > 0 else 0
         map_instance = cls(width, height)
-        for y in range(height):
-            for x in range(width):
-                pipe = grid[y][x]
+        for x in range(width):
+            for y in range(height):
+                pipe = grid[x][y]
                 if pipe:
                     map_instance._place_pipe(x, y, pipe)
         return map_instance
     
+    def get_map_size(self) -> tuple[int, int]:
+        """Get the size of the map.
+
+        @return: A tuple (width, height) representing the size of the map."""
+        return self.width, self.height
+    
     def _place_pipe(self, x:int, y:int, pipe:Pipe):
-        self.grid[y][x] = pipe
+        self.grid[x][y] = pipe
         pipe._map = self  # Set the map reference in the pipe
         pipe._position = (x, y)  # Set the position reference in the pipe
+        pipe._filled = False  # Ensure the pipe starts as unfilled
     def get_pipe(self, x:int, y:int) -> Pipe:
         """Get the pipe at the specified coordinates.
 
@@ -143,7 +150,7 @@ class Map:
         @param y: The y-coordinate of the pipe
         @return: The Pipe object at the specified coordinates, or None if there is no pipe."""
         if 0 <= x < self.width and 0 <= y < self.height:
-            return self.grid[y][x]
+            return self.grid[x][y]
         raise IndexError("Coordinates out of bounds")
     def rotate_pipe(self, x:int, y:int) -> None:
         """Rotate the pipe at the specified coordinates.
@@ -162,10 +169,10 @@ class Map:
         @param y: The y-coordinate of the pipe
         @return: A dictionary mapping Direction enums to the adjacent Pipe objects (or None if no pipe in that direction)"""
         adjacent = {}
-        if y > 0:  # Up
-            adjacent[Direction.UP] = self.get_pipe(x, y-1)
-        if y < self.height - 1:  # Down
+        if y < self.height - 1:  
             adjacent[Direction.DOWN] = self.get_pipe(x, y+1)
+        if y > 0:  
+            adjacent[Direction.UP] = self.get_pipe(x, y-1)
         if x > 0:  # Left
             adjacent[Direction.LEFT] = self.get_pipe(x-1, y)
         if x < self.width - 1:  # Right
@@ -250,11 +257,18 @@ class PipeGenerator:
 
 class MapGenerator:
     @classmethod
-    def default_map(cls):
-        Map.load_grid([
+    def default_map(cls) -> Map:
+        map=Map.load_grid([
                 [PipeGenerator.sink(), PipeGenerator.corner(), PipeGenerator.corner(), PipeGenerator.sink()],
                 [PipeGenerator.corner(), PipeGenerator.t(), PipeGenerator.t(), PipeGenerator.corner()],
                 [PipeGenerator.sink(), PipeGenerator.t(), PipeGenerator.corner(True), PipeGenerator.straight()],
                 [PipeGenerator.sink(), PipeGenerator.corner(), PipeGenerator.sink(), PipeGenerator.corner()],
             ])
+        map._update_water_flow()
+        return map
         
+
+if __name__ == "__main__":
+    map = MapGenerator.default_map()
+    for pipe in map:
+        print(pipe.get_position(), pipe.get_openings(), pipe.get_type(), pipe.is_filled())
