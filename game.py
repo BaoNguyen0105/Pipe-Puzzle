@@ -39,6 +39,8 @@ class Pipe:
         self._filled = filled  # Whether the pipe is currently filled with water
         self._map:Map=None  # Reference to the map it belongs to, set when placed on the map
         self._position:tuple[int, int]=None  # Position on the map, set when placed on the map
+
+
     def rotate(self) -> None:
         """Rotate the pipe 90 degrees clockwise."""
         new_openings = []
@@ -181,11 +183,11 @@ class Map:
     def _update_water_flow(self):
         # This method would contain the logic to update the water flow through the pipes
         # It would check for connected pipes and fill them accordingly
-        for pipe in self:
+        for pipe in self.to_list():
             pipe._filled = False  # Reset all pipes to unfilled
 
         queue:list[Pipe]=[]
-        for pipe in self:
+        for pipe in self.to_list():
             if pipe.get_type() == PipeType.SOURCE:
                 pipe._filled = True
                 queue.append(pipe)
@@ -201,15 +203,33 @@ class Map:
                     adjacent_pipe._filled = True
                     queue.append(adjacent_pipe)
         
-    def __iter__(self):
-        """**EXAMPLE USAGE:**
+    def copy(self) -> 'Map':
+        """Create a deep copy of the map, including all pipes and their states.
 
-        *for pipe in game_map:*
-            *print pipe.get_position()*
-        """
+        @return: A new instance of Map that is a copy of the current map."""
+        new_map = Map(self.width, self.height)
+        for pipe in self.to_list():
+            x, y = pipe.get_position()
+            new_pipe = Pipe(pipe.get_openings(), pipe.get_type(), pipe.is_filled())
+            new_map._place_pipe(x, y, new_pipe)
+        return new_map
+    # def __iter__(self):
+    #     """**WOULD NOT RECOMMEND**
+
+    #     *for pipe in game_map:*
+    #         *print pipe.get_position()*
+    #     """
+    #     for x in range(self.width):
+    #         for y in range(self.height):
+    #             yield self.get_pipe(x, y)
+        
+    def to_list(self) -> list[Pipe]:
+        """Create a list of all posible pipes"""
+        ret=[]
         for x in range(self.width):
             for y in range(self.height):
-                yield self.get_pipe(x, y)
+                ret.append(self.get_pipe(x, y))
+        return ret
     
 class PipeGenerator: 
     @classmethod
@@ -266,9 +286,17 @@ class MapGenerator:
             ])
         map._update_water_flow()
         return map
-        
+    @classmethod
+    def default_map_3(cls) -> Map:
+        map=Map.load_grid([
+            [PipeGenerator.corner(),    PipeGenerator.t(),          PipeGenerator.sink()],
+            [PipeGenerator.straight(),  PipeGenerator.corner(True), PipeGenerator.corner()],
+            [PipeGenerator.sink(),      PipeGenerator.sink(),       PipeGenerator.corner()]
+            ])
+        map._update_water_flow()
+        return map
 
 if __name__ == "__main__":
     map = MapGenerator.default_map()
-    for pipe in map:
+    for pipe in map.to_list():
         print(pipe.get_position(), pipe.get_openings(), pipe.get_type(), pipe.is_filled())

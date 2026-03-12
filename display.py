@@ -101,6 +101,7 @@ def display_game(map:Map, update:Callable[[Map],None]=None, fps:float=5):
     loaded_assets = load_assets()
 
     running = True
+    algorithm=None
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -118,16 +119,21 @@ def display_game(map:Map, update:Callable[[Map],None]=None, fps:float=5):
         for y in range(0, screen_height, GRID_SIZE):
             pygame.draw.line(screen, (200, 200, 200), (0, y), (screen_width, y))
 
-        for pipe in map:
+        for pipe in map.to_list():
             draw_pipe(screen, pipe, loaded_assets)
 
-        if update:
-            update(map)
-
         
+        if update and not algorithm:
+            algorithm=update(map)
+    
+        if algorithm:
+            try:
+                next(algorithm)
+            except StopIteration:
+                pass
 
         pygame.display.flip()
-        clock.tick(fps)  
+        clock.tick(fps)
     pygame.quit()
 
 if __name__ == "__main__":
