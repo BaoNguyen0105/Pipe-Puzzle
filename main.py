@@ -8,4 +8,4 @@ CURRENT_MAP = MapGenerator.default_map_3()
 CURRENT_ALGORITHM = dfs
 
 if __name__ == "__main__":
-    display_game(CURRENT_MAP, CURRENT_ALGORITHM, fps=5)
+    display_game(CURRENT_MAP, CURRENT_ALGORITHM, fps=10)

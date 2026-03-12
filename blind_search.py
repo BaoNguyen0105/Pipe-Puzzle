@@ -1,11 +1,11 @@
 """Blind search algorithms for the pipe-connecting puzzle game."""
 
-from game import Map, Pipe, Direction, PipeType, MapGenerator
+from game import Map, Pipe, Direction, MapGenerator
 
 def get_source(map:Map):
     """Find the source pipe in the map."""
     for pipe in map.to_list():
-        if pipe.get_type()==PipeType.SOURCE:
+        if pipe.is_source():
             return pipe
     return None
 
@@ -19,7 +19,6 @@ def is_finished(map:Map):
 def valid(pipe:Pipe, map:Map):
     openings=pipe.get_openings()
     x, y = pipe.get_position()
-    type_=pipe.get_type()
     adjacents=pipe.get_adjacent_pipes()
     width, height=map.get_map_size()
     if x==0 and Direction.LEFT in openings:
@@ -30,9 +29,9 @@ def valid(pipe:Pipe, map:Map):
         return False
     if y==height-1 and Direction.DOWN in openings:
         return False
-    if type_==PipeType.SINK:
+    if pipe.is_sink():
         for dir,adjecent in adjacents.items():
-            if adjecent.get_type()==PipeType.SINK and pipe.connected(adjecent, dir):
+            if adjecent.is_sink() and pipe.connected(adjecent, dir):
                 return False
     # if Direction.UP in adjacents and not pipe.connected(adjacents[Direction.UP], Direction.UP):
     #     return False
@@ -40,39 +39,7 @@ def valid(pipe:Pipe, map:Map):
     #     return False
     return True
 
-def is_sink(pipe:Pipe):
-    return pipe.get_type()==PipeType.SINK
-def is_corner(pipe:Pipe):
-    openings=pipe.get_openings()
-    if len(openings)!=2:
-        return False
-    if Direction.UP in openings and Direction.RIGHT in openings:
-        return True
-    if Direction.RIGHT in openings and Direction.DOWN in openings:
-        return True  
-    if Direction.DOWN in openings and Direction.LEFT in openings:
-        return True 
-    if Direction.LEFT in openings and Direction.UP in openings:
-        return True
-    return False 
-def is_straight(pipe:Pipe):
-    openings=pipe.get_openings()
-    if len(openings)!=2:
-        return False
-    if Direction.LEFT in openings and Direction.RIGHT in openings:
-        return True
-    if Direction.UP in openings and Direction.DOWN in openings:
-        return True
-    return False
 
-def is_t(pipe:Pipe):
-    return len(pipe.get_openings())==3
-
-def is_cross(pipe:Pipe):
-    return len(pipe.get_openings())==4
-
-def is_source(pipe:Pipe):
-    return pipe.get_type()==PipeType.SOURCE
 
 def is_edge_position(x,y, width, height):
     return x==0 or y==0 or x==width-1 or y==height-1
@@ -91,20 +58,18 @@ def get_trivial_pipes(map:Map):
     ret:list[Pipe]=[]
     for pipe in map.to_list():
         x, y =pipe.get_position()
-        pipe_type=pipe.get_type()
         width, height = map.get_map_size()
 
-        if is_corner_position(x,y,width, height) and is_corner(pipe):
+        if is_corner_position(x,y,width, height) and pipe.is_corner():
             ret.append(pipe)
-        elif is_edge_position(x,y,width, height) and is_straight(pipe):
+        elif is_edge_position(x,y,width, height) and pipe.is_straight():
             ret.append(pipe)
-        elif is_edge_position(x,y,width, height) and is_t(pipe):
+        elif is_edge_position(x,y,width, height) and pipe.is_t():
             ret.append(pipe)
     return ret
 
 def rotate_trivial_pipes(map:Map, trivial_pipes:list[Pipe]):
     for pipe in trivial_pipes:
-        print(pipe.get_position())
         while True:
             openings=pipe.get_openings()
             x, y = pipe.get_position()
@@ -137,6 +102,9 @@ def dfs(map:Map):
         if index >= len(pipe_list):
             return
         pipe = pipe_list[index]
+        if pipe in trivial_pipes:
+            yield from recur(index+1)
+            return
         for _ in range(4):
             if is_finished(map):
                 return
@@ -144,8 +112,6 @@ def dfs(map:Map):
                 yield from recur(index+1)
             if is_finished(map):
                 return
-            if pipe in trivial_pipes:
-                continue
             yield pipe.rotate()
             
         

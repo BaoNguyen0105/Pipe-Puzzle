@@ -1,7 +1,7 @@
 """Display module for the pipe-connecting puzzle game.
 This module handles the rendering of the game board and the user interface."""
 
-from game import Pipe, Map, MapGenerator, Direction, PipeType
+from game import Pipe, Map, MapGenerator, Direction
 import pygame
 from typing import Callable
 
@@ -76,7 +76,7 @@ def draw_pipe(screen:pygame.Surface, pipe:Pipe, loaded_assets:dict):
     image_rect=image.get_rect()
     image_rect.center=(x+GRID_SIZE//2, y+GRID_SIZE//2)
     screen.blit(image, image_rect)
-    if pipe.get_type() == PipeType.SOURCE:
+    if pipe.is_source():
         source_image = loaded_assets['source']
         source_image_rect = source_image.get_rect()
         source_image_rect.center = image_rect.center

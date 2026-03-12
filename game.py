@@ -27,12 +27,17 @@ class Pipe:
     """Class representing a single pipe in the game.
 
     Available methods:
-    - rotate(): Rotate the pipe 90 degrees clockwise.
-    - connected(other_pipe, direction): Check if this pipe is connected to another pipe in the given direction.
-    - get_openings(): Get the current openings of the pipe.
-    - is_filled(): Check if the pipe is currently filled with water.
-    - get_type(): Get the type of the pipe (SOURCE, SINK, or None).
-    - get_position(): Get the current position of the pipe on the map."""
+    - **rotate()**: Rotate the pipe 90 degrees clockwise.
+    - **connected(other_pipe, direction)**: Check if this pipe is connected to another pipe in the given direction.
+    - **get_openings()**: Get the current openings of the pipe.
+    - **is_filled()**: Check if the pipe is currently filled with water.
+    - **get_position()**: Get the current position of the pipe on the map.
+    - **is_sink()**: Check if pipe is a sink.
+    - **is_corner()**: Check if pipe is corner shape.
+    - **is_straight()**: Check if pipe is straight shape.
+    - **is_t()**: Check if pipe is t shape.
+    - **is_cross()**: Check if pipe is cross shape.
+    - **is_source()**: Check is pipe is source."""
     def __init__(self, openings:tuple[Direction], pipe_type:PipeType | None, filled:bool=False):
         self.__openings = openings  # A set of Direction enums
         self.__pipe_type = pipe_type  # A PipeType enum
@@ -86,10 +91,7 @@ class Pipe:
 
         @return: True if filled, False otherwise"""
         return self._filled
-    def get_type(self) -> PipeType | None:
-        """Get the type of the pipe.
-
-        @return: A PipeType enum representing the type of the pipe, or None if it's a regular pipe."""
+    def _get_type(self) -> PipeType | None:
         return self.__pipe_type
     def get_position(self) -> tuple[int, int]:
         """Get the current position of the pipe on the map.
@@ -105,15 +107,56 @@ class Pipe:
             return self._map.get_adjacent_pipes(x, y)
         return {}
     
+    def is_sink(self):
+        """Return True if the pipe is sink"""
+        return self._get_type()==PipeType.SINK
+    def is_corner(self):
+        """Return True if the pipe is corner shape"""
+        openings=self.get_openings()
+        if len(openings)!=2:
+            return False
+        if Direction.UP in openings and Direction.RIGHT in openings:
+            return True
+        if Direction.RIGHT in openings and Direction.DOWN in openings:
+            return True  
+        if Direction.DOWN in openings and Direction.LEFT in openings:
+            return True 
+        if Direction.LEFT in openings and Direction.UP in openings:
+            return True
+        return False 
+    def is_straight(self):
+        """Return True if the pipe is straight shape"""
+        openings=self.get_openings()
+        if len(openings)!=2:
+            return False
+        if Direction.LEFT in openings and Direction.RIGHT in openings:
+            return True
+        if Direction.UP in openings and Direction.DOWN in openings:
+            return True
+        return False
+
+    def is_t(self):
+        """Return True if the pipe is t shape"""
+        return len(self.get_openings())==3
+
+    def is_cross(self):
+        """Return True if the pipe is + shape"""
+        return len(self.get_openings())==4
+
+    def is_source(self):
+        """Return True if the pipe is source"""
+        return self._get_type()==PipeType.SOURCE
+    
 class Map:
     """Class representing the game map, which is a grid of pipes.
 
     Available methods:
-    - load_grid(grid): Load a grid of pipes into the map.
-    - get_pipe(x, y): Get the pipe at the specified coordinates.
-    - rotate_pipe(x, y): Rotate the pipe at the specified coordinates.
-    - get_adjacent_pipes(x, y): Get the adjacent pipes to the pipe at the specified coordinates.
-    - __iter__(): Iterate over all pipes in the map."""
+    - **load_grid(grid)**: Load a grid of pipes into the map.
+    - **get_pipe(x, y)**: Get the pipe at the specified coordinates.
+    - **rotate_pipe(x, y)**: Rotate the pipe at the specified coordinates.
+    - **get_adjacent_pipes(x, y)**: Get the adjacent pipes to the pipe at the specified coordinates.
+    - **to_list()**: Return a list contains all the pipes.
+    - **copy()**: Return a copy of the map."""
     def __init__(self, width:int, height:int):
         self.width = width
         self.height = height
@@ -159,6 +202,7 @@ class Map:
 
         @param x: The x-coordinate of the pipe to rotate
         @param y: The y-coordinate of the pipe to rotate
+        @return:
         """
         pipe = self.get_pipe(x, y)
         if pipe:
@@ -169,7 +213,7 @@ class Map:
 
         @param x: The x-coordinate of the pipe
         @param y: The y-coordinate of the pipe
-        @return: A dictionary mapping Direction enums to the adjacent Pipe objects (or None if no pipe in that direction)"""
+        @return : A dictionary mapping Direction enums to the adjacent Pipe objects (or None if no pipe in that direction)"""
         adjacent = {}
         if y < self.height - 1:  
             adjacent[Direction.DOWN] = self.get_pipe(x, y+1)
@@ -188,7 +232,7 @@ class Map:
 
         queue:list[Pipe]=[]
         for pipe in self.to_list():
-            if pipe.get_type() == PipeType.SOURCE:
+            if pipe._get_type() == PipeType.SOURCE:
                 pipe._filled = True
                 queue.append(pipe)
 
@@ -206,11 +250,12 @@ class Map:
     def copy(self) -> 'Map':
         """Create a deep copy of the map, including all pipes and their states.
 
+        @param None: 
         @return: A new instance of Map that is a copy of the current map."""
         new_map = Map(self.width, self.height)
         for pipe in self.to_list():
             x, y = pipe.get_position()
-            new_pipe = Pipe(pipe.get_openings(), pipe.get_type(), pipe.is_filled())
+            new_pipe = Pipe(pipe.get_openings(), pipe._get_type(), pipe.is_filled())
             new_map._place_pipe(x, y, new_pipe)
         return new_map
     # def __iter__(self):
@@ -224,7 +269,10 @@ class Map:
     #             yield self.get_pipe(x, y)
         
     def to_list(self) -> list[Pipe]:
-        """Create a list of all posible pipes"""
+        """Create a list of all posible pipes
+        
+        @param None: 
+        @return: A list of all pipes in the map"""
         ret=[]
         for x in range(self.width):
             for y in range(self.height):
@@ -299,4 +347,4 @@ class MapGenerator:
 if __name__ == "__main__":
     map = MapGenerator.default_map()
     for pipe in map.to_list():
-        print(pipe.get_position(), pipe.get_openings(), pipe.get_type(), pipe.is_filled())
+        print(pipe.get_position(), pipe.get_openings(), pipe._get_type(), pipe.is_filled())
