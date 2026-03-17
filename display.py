@@ -4,6 +4,8 @@ This module handles the rendering of the game board and the user interface."""
 from game import Pipe, Map, MapGenerator, Direction
 import pygame
 from typing import Callable
+import time
+import tracemalloc
 
 GRID_SIZE = 128  # Size of each grid cell in pixels
 
@@ -91,6 +93,7 @@ def display_game(map:Map, update:Callable[[Map],None]=None, fps:float=5):
     @param fps: The frames per second for the game loop (default is 5)
     """
     #TODO: Implement the display function to render the game board and handle user interactions.
+
     map_width, map_height = map.get_map_size()
     screen_width, screen_height = map_width * GRID_SIZE, map_height * GRID_SIZE
 
@@ -102,6 +105,11 @@ def display_game(map:Map, update:Callable[[Map],None]=None, fps:float=5):
 
     running = True
     algorithm=None
+    is_finished=False
+    printed=False
+
+    start=time.time()
+    tracemalloc.start()
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -130,7 +138,16 @@ def display_game(map:Map, update:Callable[[Map],None]=None, fps:float=5):
             try:
                 next(algorithm)
             except StopIteration:
-                pass
+                is_finished=True
+
+
+        if is_finished and not printed:
+            end=time.time()
+            current, peak = tracemalloc.get_traced_memory()
+            print(f"Time taken: {end-start}")
+            print(f"Memory peak: {peak} B")
+            printed=True
+            
 
         pygame.display.flip()
         clock.tick(fps)

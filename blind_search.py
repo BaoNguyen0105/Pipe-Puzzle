@@ -33,10 +33,16 @@ def valid(pipe:Pipe, map:Map):
         for dir,adjecent in adjacents.items():
             if adjecent.is_sink() and pipe.connected(adjecent, dir):
                 return False
-    # if Direction.UP in adjacents and not pipe.connected(adjacents[Direction.UP], Direction.UP):
-    #     return False
-    # if Direction.LEFT in adjacents and not pipe.connected(adjacents[Direction.LEFT], Direction.LEFT):
-    #     return False
+            
+    if Direction.UP in adjacents:
+        up_pipe=adjacents[Direction.UP]
+        if (Direction.DOWN in up_pipe.get_openings()) != (Direction.UP in pipe.get_openings()):
+            return False
+    if Direction.LEFT in adjacents:
+        left_pipe=adjacents[Direction.LEFT]
+        if (Direction.RIGHT in left_pipe.get_openings()) != (Direction.LEFT in pipe.get_openings()):
+            return False
+        
     return True
 
 
@@ -106,8 +112,6 @@ def dfs(map:Map):
             yield from recur(index+1)
             return
         for _ in range(4):
-            if is_finished(map):
-                return
             if valid(pipe, map):
                 yield from recur(index+1)
             if is_finished(map):
