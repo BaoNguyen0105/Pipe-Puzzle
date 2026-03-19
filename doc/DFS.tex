@@ -1,0 +1,110 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[left=2cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{booktabs} 
+\usepackage{float}
+
+\begin{document}
+
+\section{Phân tích Bài toán Pipe Puzzle}
+Bài toán được mô phỏng trên một lưới chỉnh hợp kích thước $M \times N$. Mỗi ô trong lưới chứa một đoạn ống nước có khả năng xoay các góc $0^\circ, 90^\circ, 180^\circ, 270^\circ$.
+
+Các ràng buộc cơ bản của bài toán bao gồm:
+\begin{itemize}
+    \item \textbf{Tính liên thông:} Nguồn nước (Source) phải kết nối được với tất cả các ô trên lưới thông qua hệ thống ống.
+    \item \textbf{Tính khép kín:} Không tồn tại đầu ống nào hướng ra ngoài biên hoặc hướng vào cạnh của một ô lân cận mà tại đó không có đầu ống nối tương ứng.
+\end{itemize}
+
+Mục tiêu là tìm ra cấu hình xoay cho tất cả các ô sao cho thỏa mãn đồng thời các ràng buộc trên.
+
+\section{Hiện thực Thuật toán DFS}
+Để giải quyết bài toán, ta tiếp cận bằng thuật toán Tìm kiếm theo chiều sâu (Depth-First Search - DFS) kết hợp quay lui (Backtracking). Thuật toán duyệt qua từng ô theo thứ tự tuyến tính từ $0$ đến $(M \times N - 1)$.
+
+\subsection{Mã giả cơ bản}
+Dưới đây là cấu trúc cơ bản của thuật toán khi chưa áp dụng tối ưu hóa:
+
+\begin{algorithm}[H]
+\DontPrintSemicolon
+\SetKwFunction{FDFS}{DFS}
+\SetKwProg{Fn}{FUNCTION}{:}{}
+\Fn{\FDFS{grid, cell\_index}}{
+    \If{cell\_index == Total\_Cells}{
+        \Return IsGridValid(grid) \tcp*{Kiểm tra tính hợp lệ toàn cục}
+    }
+    
+    $(row, col) \gets$ GetCoordinates(cell\_index)\;
+    
+    \For{rotation $\in \{0, 1, 2, 3\}$}{
+        grid[row][col].current\_rotation $\gets$ rotation\;
+        
+        \If{\FDFS{grid, cell\_index + 1}}{
+            \Return \textbf{true}\;
+        }
+    }
+    \Return \textbf{false}\;
+}
+\caption{Giải thuật DFS cho Pipe Puzzle}
+\end{algorithm}
+
+\subsection{Đánh giá độ phức tạp}
+Về mặt lý thuyết, với mỗi ô có 4 trạng thái xoay, không gian tìm kiếm sẽ bùng nổ theo hàm mũ: $O(4^{M \times N})$. Với một lưới kích thước $5 \times 5$, số trạng thái cần xét lên đến $4^{25} \approx 1.12 \times 10^{15}$, vượt quá khả năng xử lý của các hệ thống máy tính thông thường trong thời gian cho phép.
+
+\section{Tối ưu hóa bằng Kỹ thuật Pruning (Cắt tỉa)}
+Để giảm thiểu không gian tìm kiếm, ta thực hiện kiểm tra các ràng buộc cục bộ ngay trong quá trình đệ quy thay vì đợi đến khi hoàn thành toàn bộ lưới.
+
+\begin{description}
+    \item[Ràng buộc biên (Boundary Constraints):] Các ô ở góc hoặc cạnh chỉ có một số ít trạng thái xoay hợp lệ (ví dụ: ống chữ L ở góc chỉ có 1 hướng xoay không đâm vào tường). Ta chỉ xét các \textit{rotation} thỏa mãn điều kiện này.
+    
+    \item[Ràng buộc kết nối lân cận (Neighbor Matching):] Khi xét ô tại vị trí $t$, các ô lân cận có chỉ số nhỏ hơn $t$ (ô phía trên và bên trái) đã được cố định trạng thái. 
+    \begin{itemize}
+        \item Nếu ô phía trên có đầu nối hướng xuống, ô hiện tại \textbf{bắt buộc} phải có đầu nối hướng lên.
+        \item Nếu ô phía trên không có đầu nối hướng xuống, ô hiện tại \textbf{không được phép} có đầu nối hướng lên.
+    \end{itemize}
+\end{description}
+
+Việc áp dụng các điều kiện cắt tỉa này giúp giảm số lượng trạng thái khả thi tại mỗi bước từ 4 xuống còn 1 hoặc thậm chí bằng 0 (dẫn đến quay lui ngay lập tức), giúp thuật toán hội tụ về lời giải nhanh hơn đáng kể.
+
+\section{Kết quả thực nghiệm và Đánh giá}
+
+Dưới đây là bảng số liệu thu được sau khi tiến hành thực nghiệm thuật toán DFS (có áp dụng kỹ thuật Pruning) trên các lưới kích thước khác nhau với cùng cấu hình FPS = 10.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả đo lường hiệu năng của thuật toán DFS với Pruning}
+\label{tab:performance_results}
+\resizebox{\textwidth}{!}{ % Tự động co giãn bảng vừa khít chiều ngang trang giấy
+\begin{tabular}{|c|c|c|c|c|c|c|}
+\hline
+\multirow{2}{*}{\textbf{Sample}} & \multicolumn{2}{c|}{\textbf{4x4}} & \multicolumn{2}{c|}{\textbf{6x6}} & \multicolumn{2}{c|}{\textbf{8x8}} \\ \cline{2-7} 
+ & \textbf{Time (s)} & \textbf{Mem (B)} & \textbf{Time (s)} & \textbf{Mem (B)} & \textbf{Time (s)} & \textbf{Mem (B)} \\ \hline
+1 & 6.8382 & 6408 & 4.1827 & 12216 & 11.5036 & 42158 \\ \hline
+2 & 1.0089 & 7258 & 11.2086 & 11900 & 1032.62 & 26150 \\ \hline
+3 & 1.8336 & 5804 & 15.9486 & 12918 & 13.5933 & 46790 \\ \hline
+4 & 0.8527 & 5788 & 3.2414 & 12958 & 398.9448 & 26110 \\ \hline
+5 & 1.3088 & 6024 & 91.7239 & 12878 & 5.2527 & 48166 \\ \hline \hline
+\textbf{Average} & 2.36844 & 6256.4 & 25.26104 & 12574 & 292.3829 & 37874.8 \\ \hline
+\textbf{Variance} & 6.383365 & 376064.8 & 1407.666 & 235162 & 199591.7 & 119904211 \\ \hline
+\end{tabular}
+}
+\end{table}
+
+\subsection{Phân tích số liệu}
+Dựa trên kết quả thực nghiệm tại Bảng \ref{tab:performance_results}, ta có các nhận xét sau:
+
+\begin{itemize}
+    \item \textbf{Về thời gian thực thi (Time):} Thời gian xử lý trung bình tăng trưởng theo hàm mũ khi kích thước lưới mở rộng. Đặc biệt, tại lưới $8 \times 8$, phương sai (Variance) đạt mức rất cao ($199,591.7$). Điều này cho thấy hiệu quả của kỹ thuật cắt tỉa phụ thuộc cực lớn vào cấu trúc của từng mẫu thử (Input-dependent). Nếu các nhánh sai bị cắt bỏ sớm, thuật toán hội tụ rất nhanh; ngược lại, hệ thống sẽ rơi vào trạng thái bùng nổ tổ hợp.
+    
+    \item \textbf{Về bộ nhớ tiêu thụ (Memory):} Trái ngược với thời gian, bộ nhớ tăng trưởng khá ổn định và tuyến tính theo số lượng ô trên lưới ($M \times N$). Điều này minh chứng cho ưu điểm của giải thuật DFS trong việc quản lý bộ nhớ, khi chỉ cần lưu trữ trạng thái trên nhánh đang duyệt thay vì toàn bộ không gian trạng thái.
+    
+    \item \textbf{Đánh giá kỹ thuật Pruning:} Kỹ thuật cắt tỉa đã giúp bài toán khả thi hơn trên các lưới nhỏ, nhưng đối với các lưới lớn ($8 \times 8$ trở lên), cần có thêm các ràng buộc thông minh hơn hoặc áp dụng các thuật toán heuristic để ổn định thời gian thực thi.
+\end{itemize}
+
+\end{document}
