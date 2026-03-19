@@ -285,6 +285,9 @@ class Map:
                 return False
         return True
     
+    def __iter__(self) -> Pipe:
+        return iter(self.to_list())
+    
 class PipeGenerator: 
     @classmethod
     def sink(cls):
